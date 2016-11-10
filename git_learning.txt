@@ -60,6 +60,7 @@ git log
 - add a remote repository to our local repository, create the remote repo first
 	git remote add REMOTE_REPO_NAME REMOTE_REPO_URL
 	git remote add origin https://MohamedIsmailMostafa:GHSom3aa1980!@github.com/MohamedIsmailMostafa/git_try_repo.git
+	git remote add origin https://MohamedIsmailMostafa:GHSom3aa1980!@github.com/MohamedIsmailMostafa/Learning.git
 - remote remote repo from local repo:
 	git remote remove REMOTE_REPO_NAME
 	git remote remove origin
