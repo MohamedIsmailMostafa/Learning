@@ -82,7 +82,7 @@ git log
 	- git diff
 	- git diff --staged --> show changes to only staged files.
 	
-- revert files to latest commit state
+- revert files to latest commit state/override files with latest
 	git checkout -- FILE_NAME
 
 - Create a branch
@@ -99,7 +99,21 @@ git log
 	- git merge BRANCH
 - delete branch
 	- git branch -d BRANCH_NAME
+- rename brach:
+	- git branch -m OLD_NAME NEW_NAME
 - remove file
 	git rm FILE_NAME
 	git commit -a -m "message"
 	git push origin master
+- tag source code
+	- git tag -a "TAG" -m "message" HEAD
+	- git tag -a "Release_1_0" -m "Message " HEAD
+- push a tag
+	git push origin tag Release_1_0
+- show a tag
+	- git tag -l
+	- git show TAG
+	- git show Release_1_0
+- Delete Tags:
+	- git tag --> list tags
+	- git tag -d TAG_ID
