@@ -99,3 +99,7 @@ git log
 	- git merge BRANCH
 - delete branch
 	- git branch -d BRANCH_NAME
+- remove file
+	git rm FILE_NAME
+	git commit -a -m "message"
+	git push origin master
