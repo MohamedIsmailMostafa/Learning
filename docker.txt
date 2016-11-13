@@ -1,0 +1,479 @@
+set http/https proxies
+==========================
+export http_proxy=http://192.168.70.202:8080/
+ export https_proxy=$http_proxy
+ 
+Ubunto admin:
+- https://help.ubuntu.com/community/NetworkConfigurationCommandLine/Automatic
+- https://help.ubuntu.com/community/RootSudo
+
+
+Ubuntu enable root login:
+=============================
+sudo passwd root
+
+Ubunto enable root access:
+============================
+edit file:
+		/etc/ssh/sshd_config
+Comment: 
+	PermitRootLogin without-password
+add: 
+	PermitRootLogin yes
+restart ssh :
+	service ssh restart
+		
+enable eth1: 
+--------------------
+	- on network settings, add adaptor2 --> Bridged adaptor
+	- in /etc/network/interface add:
+		auto eth1
+		iface eth1 inet dhcp
+	- run: 
+		sudo ifdown eth1
+		sudo ifup eth1
+		- ifconfig eth0 up
+		- sudo ifconfig eth0 10.0.0.100 netmask 255.255.255.0
+		
+	- to check: 
+		ip a
+		service networking status/start/stop/restart
+		cat /var/log/syslog
+	- set static network configurations for interface:
+		- in /etc/network/interface add:
+			auto eth1
+			iface eth1 inet static 
+			address 10.5.15.200
+			netmask 255.255.255.128
+			pre-up ifconfig eth1 hw ether AA:6F:78:UI:34:34
+	- to install network manager:
+		- apt-get install network-manager
+		
+		
+
+
+
+Docker hub (dockerhub)
+=============
+https://hub.docker.com
+mismail/MM12345678
+
+install Docker on CentOS
+=============================
+yum install -y docker
+systemctl status docker.service
+systemctl start docker.service
+
+yum check-update
+yum install -y vim
+
+
+
+
+Install Docker on Ubunto
+=========================
+apt-get install -y docker.io
+service docker status
+
+docker -v
+docker version
+To know information about docker :
+================================
+docker info
+	containers: 24
+	Images: 19
+	Server Version: 1.9.1
+	Storage Driver: aufs
+	 Root Dir: /var/lib/docker/aufs
+	 Backing Filesystem: extfs
+	 Dirs: 67
+	 Dirperm1 Supported: false
+	Execution Driver: native-0.2
+	Logging Driver: json-file
+	Kernel Version: 3.13.0-32-generic
+	Operating System: Ubuntu 14.04.1 LTS
+	CPUs: 1
+	Total Memory: 3.814 GiB
+	Name: ubuntu-docker-server-01
+	ID: 35EC:C35J:6U6Y:NIZA:FKTY:22SR:CSVP:KSJ7:OSS5:W7CC:PMI6:2G46
+	WARNING: No swap limit support
+
+=============================
+ 
+Update Docker:
+=================
+		wget -qo- https://get.docker.com/gpg | apt-key add
+	OR
+		wget -qo- https://get.docker.com/gpg
+		apt-key add gpg
+		sudo sh -c "echo deb http://get.docker.io/ubuntu docker main > /etc/apt/sources.list.d/docker.list"
+		sudo apt-get update
+		sudo apt-get install lxc-docker
+	
+	
+docker run -it ubuntu /bin/bash
+
+adding a user to a group
+sudo gpasswd -a USER_NAME GROUP_NAME
+cat /etc/group
+logout and login again
+
+
+Docker Network Configuration:
+=============================
+- configure docker to cmmunicate over network:
+	- check what is listening over network
+		netstat -tlp
+	- stop docker service
+		service docker stop
+	- start and let docker listen over network instead of local unix socket
+		docker -H 192.168.95.55:2375 -d &
+	- let docker client talk over network instead of socket
+		export DOCKER_HOST="tcp://192.168.95.55:2375" 
+		export DOCKER_HOST="tcp://192.168.95.55:2375" 
+	- issue docker client command to check
+		 docker info
+	- to remove configuration
+		export DOCKER_HOST=
+to let docker listen to both tcp and local socket:
+	docker -H IP -H unix:///var/run/docker.sock -d &
+	
+	
+list docker container 
+	docker ps
+list all docker has run on this machine and might already exited
+	docker ps -a
+	
+start certain container:
+===========================
+	docker start DOCKER_ID
+	docker stop  DOCKER_ID
+	docker restart DOCKER_ID
+attached to certain running cotnainer
+==================================
+	docker attached DOCKER_ID
+	
+	
+pull image from docker hub
+	docker pull fedora --> pulls latest 
+	docker pull -a fedora	--> pulls all versions to local repository
+	docker run --name etcd quay.io/coreos/etcd:v2.2.5
+	docker pull --name etcd quay.io/coreos/etcd:v2.2.5
+List all docker images
+	docker images
+list all versions of certain image:
+	docker images fedora
+images storage location
+	/var/lib/docker/<Storage Driver>
+	Ubunto:
+		/var/lib/docker/aufs
+		
+Launch a container: (docker run )
+	- grab an image
+	- unpack it
+	- stack all layers
+	- build it into a running container
+	
+	docker run -it IMAGE_NAME PROCESS/Application_TO_RUN
+	docker run fedora /bin/bash &
+	docker attach IMAGE_ID
+Exit container without killing it: CTRL + P + Q 
+
+
+Where docker images are stored:
+layer discriptors:(Meta Data)
+====================
+ls -l /var/lib/docker/aufs/layers/
+each file contain names of its depending layers.
+images files:
+===============
+/var/lib/docker/aufs/diff/{LAYER}
+
+
+Move docker image from host to another:
+==========================================
+1- change an image ( Create a new file inside a container)
+	/var/lib/docker/aufs/layers# docker run ubuntu /bin/bash -c "echo 'cool content' > /tmp/cool-file"
+2- create a new image from changes we made inside the container
+	docker ps -a  ==> get the ID of our container:: f27f3e2043c6
+	docker commit ID Name ==> docker commit f27f3e2043c6 fride
+	- this will create a new image and will display the id:
+		docker images ==> show images including the new image
+3- docker history fride
+	- show image creation history and the commands that created its layers.
+4- docker save -o FILE_PATH IMAGE_NAME
+	- docker save -o /tmp/fridge.tar fride
+	- this will export the docker image to a tar ball
+	- ls -lh /tmp/fridge.tar
+		-rw-r--r-- 1 root root 188M Mar 13 15:04 /tmp/fridge.tar
+	-  Look inside the tarball:
+		tar -tf /tmp/fridge.tar
+
+5- copy the tarball to another host
+6- Import the image with "import load"
+	- docker load -i LOCATION
+	- docker load -i /tmp/fridge.tar
+7- check 
+	- docker images
+8- run:
+	docker run -it fride /bin/bash
+	
+	
+The Top writable Layer of container:
+=====================================
+	- Each container gets its thin writable layer:
+		- Installing and updating application
+		- Chaning files
+		- Config Changes
+		
+- see top running processes inside a container:
+	docker top ID
+	
+- To list all containers:
+=============================
+	ls -l /var/lib/docker/containers
+
+- To count all containers:
+=============================
+	ls -l /var/lib/docker/containers | wc -l
+	or 
+	docker info
+	
+- To remove container
+=======================
+	docker rm CONTAINER_ID
+
+- To Create command alias
+==========================
+	alias dps="docker ps"
+	
+- To look inside a container
+============================
+	docker top CONTAINER_ID
+	
+- To see logs of a running container
+=====================================
+	docker logs CONTAINER_ID
+	docker logs -f CONTAINEr ID ==> log tail -f 
+
+- To inspect container or image
+===============================
+	docker inspect CONTAINER_ID
+	docker inspect IMAGE_ID
+	config.json
+	hostconfig.json
+	/var/lib/docker/conatainers/CONTAIER_ID/config.json
+	/var/lib/docker/conatainers/CONTAIER_ID/hostconfig.json
+
+- To get the Docker process id
+=====================================
+	docker inspect CONTANER_ID | grep Pid
+
+- to enter an container image namespace
+==============================================
+	this runs a shell inside the running container
+	nsenter -m -u -n -u -p -i -t CONTAINER_PID /bin/bash
+	to install nsenter: 
+		https://gist.github.com/mbn18/0d6ff5cb217c36419661
+		http://askubuntu.com/questions/439056/why-there-is-no-nsenter-in-util-linux
+
+- execute command inside a conatiner
+======================================
+	docker exec -it CONTAINER_ID /bin/bash
+	
+	
+- Create Docker image file
+================================
+	- vi Dockerfile
+		#Ubuntu based Hello World container
+		FROM ubuntu:15.04
+		MAINTAINER som3aa@gmail.com
+		RUN apt-get update
+		#RUN apt-get install -y nginx
+		#RUN apt-get install -y golang
+		CMD ["echo","Hello World!"]
+
+
+- Build Image from docker image file
+========================================
+	- anything inside this folder will be included in the docker image
+	- cd DOCKER_FOLDER 
+	- docker build -t TAG:Version DOCKER_FOLDER
+	- docker build -t helloeworld:0.1 .
+----------------------
+	Sending build context to Docker daemon 2.048 kB
+	Step 1 : FROM ubuntu:15.04
+------------------------
+==> Successfully built IMAGE_ID
+	- the docker deamon is the one that is building the image, not the docker client.
+- Show image history
+========================
+	- docker history IMAGE_ID
+- To delete docker image:
+===============================
+1- delete all containers linked to the image:
+	- docker ps -a
+	- docker rm CONT_ID1 CONT_ID2
+	- docker images
+	- docker rmi IMAGE_ID1 IMAGE_ID2
+	
+- To create a Repo on a public registry
+============================================
+	https://hub.docker.com
+	mismail/MM12345678
+
+- to push image to a Repo
+===============================
+1- tag the image: docker tag IMAGE_ID REPO_NAME(user/repo):version
+	docker tag f07fc6c4aba6 mismail/helloworld:1.0
+- login to docker rep:
+	docker login --username=mismail
+	Password:
+	Email: mohd.ismaeel@gmail.com
+	WARNING: login credentials saved in /root/.docker/config.json
+	Login Succeeded
+
+2- push the image: docker push REPO_NAME(user/repo):version
+	docker push mismail/helloworld:1.0
+	
+- to pull image from Repo
+===============================
+	docker pull IMAGE_ID
+	docker pull mismail/helloworld:1.0
+	
+	
+--------------------------
+Private Registry
+======================
+- To create docker container running python based registry:
+	docker run -d -p 5000:5000 registry
+	  -d 			--> deattached to run in background
+	  -p 5000:5000 	--> expose port 5000 inside the container and make it available docker host on port 5000
+	  registry 		--> the image name of the image containging a prevonfiged python registry 
+- To push image to the local registry
+	- Tag the image to the new repo
+	1- docker tag IMAGE_ID DNS_NAME_OF_SERVER_HOSTING_REGISTRY:PORT/TAG_NAME
+	docker tag 937a25e0abf8 ubuntu-docker-server-01:5000/priv-test
+	2- docker push DNS_NAME_OF_SERVER_HOSTING_REGISTRY:PORT/TAG_NAME
+	
+- SSL: 
+	- to configure docker for insecure communication with private registry: 
+		/etc/default/docker
+		DOCKER_OPTS="--insecure-registry ubuntu-docker-server-01:5000"
+	
+	- to run the image:
+		docker run -d ubuntu-docker-server-01:5000/priv-test
+		
+- Enterprise Docker Hup
+------------------------
+===============================================================
+Diving Deeper with Dockerfile
+===============================
+- the Build cache
+------------------
+	- docker build -t TAG:Version DOCKER_FOLDER
+	- docker build -t helloeworld:0.1 .
+	
+	when we build an image, the deamon check if there is image for each instruction in the Dockerfile in the build cache. and if so, it will use it directly from cache.
+	
+- Docker image file
+--------------------
+	- #			
+		- Comment
+	- From
+	- Maintainer
+	- RUN
+		- Build Time
+		- add layers to images
+		- used to install apps.
+	- CMD
+		- Run Time
+		- Run Commands in containers at launch time
+		- Equivalent of: docker run <args> <CMD>
+		- One per Dockerfile or it will take only the last one if many are in the Dockerfile.
+		- CMD Forms
+			- Shell Form:
+				- Commands are expressed the same way as shell commands.
+				- Commands get prepended by "/bin/sh -c"
+				- Variable expansion
+				- CMD echo "Hello World"
+				- CMD echo $var1
+			- Exec Form:
+				- JSON array style: comma separate listed values enclosed in double quote and all inclused in set of brackets.
+				- ["command","arg1"]
+				- Allows commands to be executed inside a containers that do not have a shell
+				- avoid string munging by the shell
+				- No shell features:
+					- No variable expansion
+					- No Special shell characters (&&, ||, >...)
+				
+		- One RUN with many commands:
+			RUN apt-get update && apt-get install -y \
+			apache2 \
+			apache2-utils \
+			vim \
+			&& apt-get clean \
+			&& rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+			
+- the ENTRYPOINT Instruction
+	- cannot be overriden at runtime with normal commands: docker run ... <command>
+	- if you use ENTRYPOINT, CMD specify the arguments to ENTRYPOINT
+	
+- ENV
+	ENV var1=value var2=value
+	
+	
+- Docker volume
+	- decoupling data and containers
+	- ask docker to mount an external volum from the host to the continer.
+		- docker run -it -v /test-vol --name=voltainer ubuntu:15/04 /bin/bash
+		-vi /test-vol/file
+		- docker inspect voltainer
+		- ls /var/lib/docker/vfs/dir/asdadadadasdasd/file
+	-  mount /data directory from the host to /data in the container.
+		- docker run -v /data:/data
+	- mount a volum from a container into a new container
+		- docker run -it --volumns-from=voltainer ubuntu:15/04 /bin/bash
+	- in Dockerfile: to store data outside the container:
+		VOLUMeS /data
+	- delete a container:
+		- docker stop CONTAINER_ID
+		- docker rm -v CONTAINER_ID
+		
+===================================================
+Docker with DevOps Automated Workflows:
+------------------------------------------
+https://circleci.com
+http://tutum.com/
+
+
+
+Source Code ==> 
+
+
+===================
+install jdk8 on Ubuntu
+----------------------------
+http://ubuntuhandbook.org/index.php/2015/01/install-openjdk-8-ubuntu-14-04-12-04-lts/
+
+add-apt-repository ppa:openjdk-r/ppa
+apt-get update 
+apt-get install openjdk-8-jdk
+
+- If you have more than one Java versions installed on your system. Run below command set the default Java:
+	- sudo update-alternatives --config java
+- And set default Java Compiler by running:
+	- sudo update-alternatives --config javac
+	
+Install Maven on Ubuntu:
+---------------------------
+apt-get install maven
+- http://stackoverflow.com/questions/15630055/how-to-install-maven-3-on-ubuntu-15-10-15-04-14-10-14-04-lts-13-10-13-04-12-10-1
+
+Maven will be installed on: (http://www.mkyong.com/maven/how-to-install-maven-in-ubuntu/)
+================================
+	- /usr/share/maven
+
+Maven Conf will be located on:
+================================
+/etc/maven
